@@ -1,0 +1,25 @@
+# Python caches / bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Runtime / test artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local env / secrets (never commit)
+.env
+.env.*
+*.pem
+*.key

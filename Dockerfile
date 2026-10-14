@@ -15,6 +15,10 @@ USER root
 COPY config.yaml /opt/grader-base/config.yaml
 COPY tasks/ /opt/grader-base/tasks/
 
+# Task structure manifest for the build service (README contract, see
+# docs/build.md in the platform monorepo). Owned by root, readable by all.
+COPY manifest.yaml /hopper/manifest.yaml
+
 # Bake a minimal example workspace so the image is demoable without a
 # volume mount. A bind mount over /workspace overrides it for real runs.
 COPY workspace/ /workspace/

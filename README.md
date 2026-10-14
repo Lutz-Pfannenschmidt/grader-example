@@ -22,8 +22,10 @@ share the exact same `GraderResult` stdout contract and the same set of
 env vars (plus `JOB_KIND`, which is `build` or `grade`). The build service
 runs this image with `JOB_KIND=grade` once the deadline has passed and
 renders the emitted `GraderResult` into the exercise `README.md` as a
-final report (build section + tests section, with complete untruncated
-tracebacks).
+final report (build section + tests section inside the
+`<!-- hopper:build:start/end -->` region, with complete untruncated
+tracebacks). The README contract is defined in `docs/build.md` in the
+platform monorepo.
 
 ## Relationship to grader-base
 
@@ -36,6 +38,7 @@ grader-example/
   Dockerfile                 FROM grader-base:latest; copies config + tasks + workspace
   .dockerignore
   config.yaml                stage config (ordered steps + tests)
+  manifest.yaml              task structure manifest (baked to /hopper/manifest.yaml)
   tasks/
     count_vowels/tests/test_count_vowels.py
     is_palindrome/tests/test_is_palindrome.py
@@ -69,6 +72,26 @@ here — they live in `grader-base/`.
    bundled tests).
 
 No cloning, no network, no secrets, no points.
+
+## Task structure manifest
+
+The image bakes a `manifest.yaml` to `/hopper/manifest.yaml` (see the
+Dockerfile). It declares the task structure per exercise in the format the
+build service extracts to create missing task headings and tutor boxes in
+the exercise README (contract: `docs/build.md` in the platform monorepo):
+
+```yaml
+format: 1
+exercises:
+  count_vowels:
+    tasks:
+      - key: "1.1"
+        title: "Zaehlen der Vokale"
+        points: 4
+```
+
+Rules: task keys are immutable once a task has been graded, adding tasks is
+allowed, and an exercise without tasks simply has no `tasks` entry.
 
 ## Build
 
@@ -186,8 +209,10 @@ env, unknown exercise, and a mounted infinite-loop solution that proves
 
 1. Create `tasks/<exercise>/tests/test_<exercise>.py` with `test_*`
    functions that `from solution import ...`.
-2. Provide a student `solution.py` at `$WORKSPACE/<exercise>/solution.py`.
-3. Run with `EXERCISE=<exercise>`.
+2. Add a `tasks` list for the exercise to `manifest.yaml` (key, title,
+   points).
+3. Provide a student `solution.py` at `$WORKSPACE/<exercise>/solution.py`.
+4. Run with `EXERCISE=<exercise>`.
 
 ## `builder_image` / `grader_image` usage
 
@@ -199,9 +224,11 @@ A course configures two image refs in orchestration:
   Forgejo commit status.
 - `grader_image` — this image (or a course-specific derivative). The build
   service runs it with `JOB_KIND=grade` once the deadline has passed and
-  renders the `GraderResult` into the exercise `README.md` (build section
-  + tests section with complete tracebacks). The report is written **even
-  if the build fails** — a failed build is itself reportable content.
+  renders the `GraderResult` into the exercise `README.md` (build region
+  with build section + tests section with complete tracebacks, plus the
+  task structure from `/hopper/manifest.yaml`). The report is written
+  **even if the build fails** — a failed build is itself reportable
+  content.
 
 Both image refs are opaque strings to the build service; it runs
 `docker run` with the fixed env-var contract and parses the single
